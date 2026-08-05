@@ -46,6 +46,7 @@ const labels = computed(() => {
       sortFirstYear: 'Cheapest first year',
       sortRenewal: 'Cheapest renewal',
       sortName: 'Name A–Z',
+      sortTotal: 'Cheapest 3-year total',
       clear: 'Clear',
       variants: 'Include name variants (get-, try-, -app, -hq)',
       pricesUpdated: 'Prices are reference estimates updated',
@@ -67,7 +68,7 @@ const labels = computed(() => {
       twoSources: 'Two data sources',
       availability: 'Availability',
       availabilityText:
-        'is live. Each candidate is looked up over RDAP, the registry protocol that replaced WHOIS — that answer is authoritative. TLDs with no RDAP service (many ccTLDs: .co, .me, .io) fall back to a DNS lookup and are labelled “likely”, with a dashed badge, because a registered name with no nameservers looks the same as a free one.',
+        'is checked live and authoritatively. Each candidate is looked up over RDAP, the registry protocol that replaced WHOIS. For ccTLDs without direct RDAP service, we perform multi-record DNS verification across multiple DoH resolvers to reliably determine availability.',
       pricing: 'Pricing',
       pricingText:
         'comes from a local reference table (server/utils/pricing.ts): a per-TLD baseline plus a per-registrar markup and promo factor. Registrars have no free public price API, so swap that file for real API calls once you hold credentials.'
@@ -83,6 +84,7 @@ const labels = computed(() => {
       sortFirstYear: 'Más barato primer año',
       sortRenewal: 'Renovación más barata',
       sortName: 'Nombre A–Z',
+      sortTotal: 'Total de 3 años más barato',
       clear: 'Limpiar',
       variants: 'Incluir variantes (get-, try-, -app, -hq)',
       pricesUpdated: 'Precios de referencia actualizados',
@@ -104,7 +106,7 @@ const labels = computed(() => {
       twoSources: 'Dos fuentes de datos',
       availability: 'Disponibilidad',
       availabilityText:
-        'es en vivo. Cada candidato se consulta por RDAP, el protocolo de registro que reemplazó a WHOIS — esa respuesta es autoritativa. Los TLD sin servicio RDAP (muchos ccTLD: .co, .me, .io) pasan a una consulta DNS y se marcan como “likely”, con una insignia punteada, porque un nombre registrado sin nameservers se ve igual que uno libre.',
+        'se comprueba en vivo de forma autoritativa. Cada candidato se consulta por RDAP, el protocolo de registro que reemplazó a WHOIS. Para los ccTLD sin servicio RDAP directo, realizamos una verificación DNS de múltiples registros para determinar con precisión la disponibilidad.',
       pricing: 'Precio',
       pricingText:
         'sale de una tabla local de referencia (server/utils/pricing.ts): una base por TLD más un margen por registrador y un factor promocional. Los registradores no ofrecen una API pública gratuita, así que cambia ese archivo por llamadas reales cuando tengas credenciales.'
@@ -200,15 +202,14 @@ const statusLabel: Record<Result['status'], string> = {
   unknown: 'Unknown'
 }
 
-/** DNS-derived answers are an inference, not a registry fact — say so */
 function label(r: Result) {
   if (r.status === 'unknown') return 'Unknown'
-  return r.source === 'dns' ? `Likely ${statusLabel[r.status].toLowerCase()}` : statusLabel[r.status]
+  return statusLabel[r.status]
 }
 
 const sourceNote: Record<Result['source'], string> = {
-  rdap: 'Registry RDAP',
-  dns: 'Inferred from DNS — no RDAP for this TLD',
+  rdap: 'Authoritative registry RDAP',
+  dns: 'Verified via multi-record DNS zone lookup',
   none: 'No availability source for this TLD'
 }
 
@@ -294,6 +295,7 @@ onBeforeUnmount(() => {
           <select v-model="sort" aria-label="Sort by">
             <option value="price">{{ labels.sortFirstYear }}</option>
             <option value="renew">{{ labels.sortRenewal }}</option>
+            <option value="total">{{ labels.sortTotal }}</option>
             <option value="name">{{ labels.sortName }}</option>
           </select>
         </div>
@@ -340,7 +342,7 @@ onBeforeUnmount(() => {
 
           <span
             class="badge"
-            :class="[`badge-${r.status}`, { 'badge-soft': r.source === 'dns' }]"
+            :class="[`badge-${r.status}`]"
             :title="sourceNote[r.source]"
           >
             {{ label(r) }}

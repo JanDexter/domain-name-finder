@@ -215,6 +215,11 @@ select {
   background: rgba(0, 0, 0, 0.06);
 }
 
+:root[data-theme="dark"] .compact-select select,
+:root[data-theme="dark"] .field-select select {
+  background: rgba(0, 0, 0, 0.5);
+}
+
 :root[data-theme="dark"] .icon-toggle:hover,
 :root[data-theme="dark"] .compact-select select:hover {
   background: rgba(255, 255, 255, 0.08);
@@ -364,6 +369,10 @@ select {
   );
 }
 
+:root[data-theme="dark"] .field-select::after {
+  background: #aaa;
+}
+
 .clear {
   align-self: center;
   background: none;
@@ -378,6 +387,11 @@ select {
   padding: 14px 2px 0;
   font-size: 14px;
   color: #444;
+}
+
+:root[data-theme="dark"] .hint,
+:root[data-theme="dark"] .hero-credit {
+  color: var(--paper);
 }
 
 /* ---------- results ---------- */

@@ -89,10 +89,12 @@ export default defineEventHandler(async (event) => {
   })
 
   const rank: Record<Status, number> = { available: 0, unknown: 1, taken: 2 }
+  const totalCost = (q: Quote | null) => (q?.first ?? 1e9) + (q?.renew ?? 1e9) * 2
   results.sort((a, b) => {
     if (rank[a.status] !== rank[b.status]) return rank[a.status] - rank[b.status]
     if (sort === 'name') return a.domain.localeCompare(b.domain)
     if (sort === 'renew') return (a.best?.renew ?? 1e9) - (b.best?.renew ?? 1e9)
+    if (sort === 'total') return totalCost(a.best) - totalCost(b.best)
     return (a.best?.first ?? 1e9) - (b.best?.first ?? 1e9)
   })
 
