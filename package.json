@@ -6,7 +6,8 @@
     "dev": "nuxt dev",
     "build": "nuxt build",
     "preview": "nuxt preview",
-    "generate": "nuxt generate"
+    "generate": "nuxt generate",
+    "deploy:cloudflare": "npx wrangler pages deploy dist"
   },
   "dependencies": {
     "nuxt": "^4.0.0",
