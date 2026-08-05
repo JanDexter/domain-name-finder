@@ -11,6 +11,17 @@ npm run dev
 
 Then open http://localhost:3000
 
+## Branch Workflow
+
+`dev` is the default working branch for pull requests and testing.
+`release` is the published branch and should be connected to Cloudflare Pages
+as the production branch for `namegrid.jandexter.me`.
+
+If you connect this repo to Cloudflare Pages directly, set:
+
+- Production branch: `release`
+- Preview branch: `dev`
+
 ## How it works
 
 | Piece | Source |
