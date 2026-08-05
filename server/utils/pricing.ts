@@ -1,14 +1,22 @@
 /**
  * Reference pricing model.
  *
+ * Base data is from ICANN registry costs + recent registrar public pricing.
  * Registrars do not expose free public price APIs, so this is a local
  * reference table: a per-TLD baseline (roughly registry cost + ICANN fee)
  * combined with a per-registrar markup and first-year promo factor.
- * Numbers are indicative, not live quotes. Swap `priceFor()` for a real
- * API call per registrar when you have credentials.
+ * Numbers are indicative, not live quotes.
+ *
+ * To integrate live pricing:
+ * 1. Namecheap: https://api.namecheap.com/
+ * 2. Dynadot: https://www.dynadot.com/api/
+ * 3. GoDaddy: https://developer.godaddy.com/
+ * 4. Porkbun: https://porkbun.com/api/json/v3/documentation
+ *
+ * Replace `quotesFor()` with per-registrar API calls when you have credentials.
  */
 
-export const PRICES_UPDATED = '2025-11-01'
+export const PRICES_UPDATED = '2026-08-05'
 
 export interface Registrar {
   id: string

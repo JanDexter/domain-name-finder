@@ -46,6 +46,7 @@ const labels = computed(() => {
       sortFirstYear: 'Cheapest first year',
       sortRenewal: 'Cheapest renewal',
       sortName: 'Name A–Z',
+      sortTotal: 'Cheapest 3-year total',
       clear: 'Clear',
       variants: 'Include name variants (get-, try-, -app, -hq)',
       pricesUpdated: 'Prices are reference estimates updated',
@@ -83,6 +84,7 @@ const labels = computed(() => {
       sortFirstYear: 'Más barato primer año',
       sortRenewal: 'Renovación más barata',
       sortName: 'Nombre A–Z',
+      sortTotal: 'Total de 3 años más barato',
       clear: 'Limpiar',
       variants: 'Incluir variantes (get-, try-, -app, -hq)',
       pricesUpdated: 'Precios de referencia actualizados',
@@ -294,6 +296,7 @@ onBeforeUnmount(() => {
           <select v-model="sort" aria-label="Sort by">
             <option value="price">{{ labels.sortFirstYear }}</option>
             <option value="renew">{{ labels.sortRenewal }}</option>
+            <option value="total">{{ labels.sortTotal }}</option>
             <option value="name">{{ labels.sortName }}</option>
           </select>
         </div>
