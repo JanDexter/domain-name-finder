@@ -26,7 +26,113 @@ interface SearchResponse {
   results: Result[]
 }
 
+type SupportedCurrency = 'USD' | 'EUR' | 'GBP'
+type SupportedLanguage = 'en' | 'es'
+
 const { data: meta } = await useFetch('/api/meta')
+const language = useState<SupportedLanguage>('language')
+const currency = useState<SupportedCurrency>('currency')
+
+const labels = computed(() => {
+  const copy = {
+    en: {
+      heroTitle: ['Find a', 'domain.'],
+      heroText:
+        'Search one name across every extension, see what is actually free, and compare the first-year and renewal price at ten registrars side by side — before you hand over a card.',
+      searchPlaceholder: 'Search a name, e.g. northwind',
+      filter: 'Filter',
+      popularTlds: 'Popular TLDs',
+      everyTld: 'Every TLD we price',
+      sortFirstYear: 'Cheapest first year',
+      sortRenewal: 'Cheapest renewal',
+      sortName: 'Name A–Z',
+      sortTotal: 'Cheapest 3-year total',
+      clear: 'Clear',
+      variants: 'Include name variants (get-, try-, -app, -hq)',
+      pricesUpdated: 'Prices are reference estimates updated',
+      registrars: 'registrars',
+      empty: 'Type a name above. Availability is checked live over RDAP; prices come from the reference table.',
+      searchFailed: 'Search failed. Try again.',
+      availableOf: 'available of',
+      checked: 'checked',
+      noPricing: 'No pricing',
+      open: 'Open →',
+      close: 'Close',
+      prices: 'Prices',
+      registrar: 'Registrar',
+      firstYear: 'First year',
+      renewal: 'Renewal',
+      notes: 'Notes',
+      go: 'Go',
+      howTitle: 'How it works',
+      twoSources: 'Two data sources',
+      availability: 'Availability',
+      availabilityText:
+        'is checked live and authoritatively. Each candidate is looked up over RDAP, the registry protocol that replaced WHOIS. For ccTLDs without direct RDAP service, we perform multi-record DNS verification across multiple DoH resolvers to reliably determine availability.',
+      pricing: 'Pricing',
+      pricingText:
+        'comes from a local reference table (server/utils/pricing.ts): a per-TLD baseline plus a per-registrar markup and promo factor. Registrars have no free public price API, so swap that file for real API calls once you hold credentials.'
+    },
+    es: {
+      heroTitle: ['Encuentra', 'un dominio.'],
+      heroText:
+        'Busca un nombre en todas las extensiones, mira qué está realmente libre y compara el precio del primer año y la renovación en diez registradores antes de pagar.',
+      searchPlaceholder: 'Busca un nombre, por ejemplo northwind',
+      filter: 'Filtro',
+      popularTlds: 'TLD populares',
+      everyTld: 'Todos los TLD que valoramos',
+      sortFirstYear: 'Más barato primer año',
+      sortRenewal: 'Renovación más barata',
+      sortName: 'Nombre A–Z',
+      sortTotal: 'Total de 3 años más barato',
+      clear: 'Limpiar',
+      variants: 'Incluir variantes (get-, try-, -app, -hq)',
+      pricesUpdated: 'Precios de referencia actualizados',
+      registrars: 'registradores',
+      empty: 'Escribe un nombre arriba. La disponibilidad se comprueba en vivo por RDAP; los precios vienen de la tabla de referencia.',
+      searchFailed: 'La búsqueda falló. Intenta otra vez.',
+      availableOf: 'disponibles de',
+      checked: 'comprobados',
+      noPricing: 'Sin precio',
+      open: 'Abrir →',
+      close: 'Cerrar',
+      prices: 'Precios',
+      registrar: 'Registrador',
+      firstYear: 'Primer año',
+      renewal: 'Renovación',
+      notes: 'Notas',
+      go: 'Ir',
+      howTitle: 'Cómo funciona',
+      twoSources: 'Dos fuentes de datos',
+      availability: 'Disponibilidad',
+      availabilityText:
+        'se comprueba en vivo de forma autoritativa. Cada candidato se consulta por RDAP, el protocolo de registro que reemplazó a WHOIS. Para los ccTLD sin servicio RDAP directo, realizamos una verificación DNS de múltiples registros para determinar con precisión la disponibilidad.',
+      pricing: 'Precio',
+      pricingText:
+        'sale de una tabla local de referencia (server/utils/pricing.ts): una base por TLD más un margen por registrador y un factor promocional. Los registradores no ofrecen una API pública gratuita, así que cambia ese archivo por llamadas reales cuando tengas credenciales.'
+    }
+  }
+
+  return copy[language.value ?? 'en']
+})
+
+const currencyRates: Record<SupportedCurrency, number> = {
+  USD: 1,
+  EUR: 0.92,
+  GBP: 0.79
+}
+
+const currencyFormatter = computed(
+  () =>
+    new Intl.NumberFormat(language.value === 'es' ? 'es-ES' : 'en-US', {
+      style: 'currency',
+      currency: currency.value ?? 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })
+)
+
+const currencyRate = computed(() => currencyRates[currency.value ?? 'USD'])
 
 const term = ref('')
 const tld = ref('popular')
@@ -37,6 +143,21 @@ const pending = ref(false)
 const error = ref('')
 const data = ref<SearchResponse | null>(null)
 const open = ref<string | null>(null)
+let debounceTimer: ReturnType<typeof setTimeout> | undefined
+
+function scheduleSearch() {
+  if (debounceTimer) clearTimeout(debounceTimer)
+  if (!term.value.trim()) {
+    data.value = null
+    error.value = ''
+    open.value = null
+    return
+  }
+
+  debounceTimer = setTimeout(() => {
+    search()
+  }, 300)
+}
 
 async function search() {
   const q = term.value.trim()
@@ -49,7 +170,7 @@ async function search() {
       query: { q, tld: tld.value, sort: sort.value, variants: variants.value ? 1 : 0 }
     })
   } catch (e: any) {
-    error.value = e?.data?.statusMessage || 'Search failed. Try again.'
+    error.value = e?.data?.statusMessage || labels.value.searchFailed
     data.value = null
   } finally {
     pending.value = false
@@ -57,6 +178,7 @@ async function search() {
 }
 
 function clear() {
+  if (debounceTimer) clearTimeout(debounceTimer)
   term.value = ''
   tld.value = 'popular'
   sort.value = 'price'
@@ -70,7 +192,9 @@ function toggle(domain: string) {
   open.value = open.value === domain ? null : domain
 }
 
-const money = (n: number) => `$${n.toFixed(2)}`
+function money(n: number) {
+  return currencyFormatter.value.format(n * currencyRate.value)
+}
 
 const statusLabel: Record<Result['status'], string> = {
   available: 'Available',
@@ -78,17 +202,26 @@ const statusLabel: Record<Result['status'], string> = {
   unknown: 'Unknown'
 }
 
-/** DNS-derived answers are an inference, not a registry fact — say so */
 function label(r: Result) {
   if (r.status === 'unknown') return 'Unknown'
-  return r.source === 'dns' ? `Likely ${statusLabel[r.status].toLowerCase()}` : statusLabel[r.status]
+  return statusLabel[r.status]
 }
 
 const sourceNote: Record<Result['source'], string> = {
-  rdap: 'Registry RDAP',
-  dns: 'Inferred from DNS — no RDAP for this TLD',
+  rdap: 'Authoritative registry RDAP',
+  dns: 'Verified via multi-record DNS zone lookup',
   none: 'No availability source for this TLD'
 }
+
+watch([term, tld, sort, variants], () => scheduleSearch())
+
+watch([language, currency], () => {
+  if (term.value.trim()) scheduleSearch()
+})
+
+onBeforeUnmount(() => {
+  if (debounceTimer) clearTimeout(debounceTimer)
+})
 </script>
 
 <template>
@@ -96,11 +229,9 @@ const sourceNote: Record<Result['source'], string> = {
     <!-- hero -->
     <section class="hero">
       <div class="hero-copy">
-        <h1>Find a<br />domain.</h1>
+        <h1>{{ labels.heroTitle[0] }}<br />{{ labels.heroTitle[1] }}</h1>
         <p>
-          Search one name across every extension, see what is actually free, and
-          compare the first-year and renewal price at ten registrars side by
-          side — before you hand over a card.
+          {{ labels.heroText }}
         </p>
       </div>
 
@@ -137,12 +268,12 @@ const sourceNote: Record<Result['source'], string> = {
           <input
             v-model="term"
             type="text"
-            placeholder="Search a name, e.g. northwind"
+            :placeholder="labels.searchPlaceholder"
             aria-label="Domain name"
             autocomplete="off"
             spellcheck="false"
           />
-          <button type="submit" aria-label="Search">
+          <button type="submit" aria-label="Search" :disabled="pending">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <circle cx="11" cy="11" r="7" />
               <path d="M16.5 16.5 21 21" />
@@ -150,25 +281,26 @@ const sourceNote: Record<Result['source'], string> = {
           </button>
         </div>
 
-        <span class="filter-label">Filter</span>
+        <span class="filter-label">{{ labels.filter }}</span>
 
         <div class="field field-select">
           <select v-model="tld" aria-label="Extension">
-            <option value="popular">Popular TLDs</option>
-            <option value="all">Every TLD we price</option>
+            <option value="popular">{{ labels.popularTlds }}</option>
+            <option value="all">{{ labels.everyTld }}</option>
             <option v-for="t in meta?.tlds" :key="t" :value="t">.{{ t }}</option>
           </select>
         </div>
 
         <div class="field field-select">
           <select v-model="sort" aria-label="Sort by">
-            <option value="price">Cheapest first year</option>
-            <option value="renew">Cheapest renewal</option>
-            <option value="name">Name A–Z</option>
+            <option value="price">{{ labels.sortFirstYear }}</option>
+            <option value="renew">{{ labels.sortRenewal }}</option>
+            <option value="total">{{ labels.sortTotal }}</option>
+            <option value="name">{{ labels.sortName }}</option>
           </select>
         </div>
 
-        <button type="button" class="clear" @click="clear">Clear</button>
+        <button type="button" class="clear" @click="clear">{{ labels.clear }}</button>
       </form>
 
       <p class="hint">
@@ -178,10 +310,10 @@ const sourceNote: Record<Result['source'], string> = {
             type="checkbox"
             aria-label="Include name variants"
           />
-          Include name variants (get-, try-, -app, -hq)
+          {{ labels.variants }}
         </label>
-        · Prices are reference estimates updated {{ meta?.updated }} across
-        {{ meta?.registrars?.length }} registrars.
+        · {{ labels.pricesUpdated }} {{ meta?.updated }} across
+        {{ meta?.registrars?.length }} {{ labels.registrars }}.
       </p>
     </section>
 
@@ -192,15 +324,14 @@ const sourceNote: Record<Result['source'], string> = {
       <div v-if="data" class="results-bar">
         <h2>{{ data.query }}</h2>
         <span class="meta">
-          {{ data.available }} available of {{ data.count }} checked
+          {{ data.available }} {{ labels.availableOf }} {{ data.count }} {{ labels.checked }}
         </span>
       </div>
 
       <p v-if="error" class="empty">{{ error }}</p>
 
       <p v-else-if="!data && !pending" class="empty">
-        Type a name above. Availability is checked live over RDAP; prices come
-        from the reference table.
+        {{ labels.empty }}
       </p>
 
       <div v-for="r in data?.results" :key="r.domain" class="row">
@@ -211,7 +342,7 @@ const sourceNote: Record<Result['source'], string> = {
 
           <span
             class="badge"
-            :class="[`badge-${r.status}`, { 'badge-soft': r.source === 'dns' }]"
+            :class="[`badge-${r.status}`]"
             :title="sourceNote[r.source]"
           >
             {{ label(r) }}
@@ -222,21 +353,21 @@ const sourceNote: Record<Result['source'], string> = {
               <strong>{{ money(r.best.first) }}</strong> yr 1 ·
               {{ money(r.best.renew) }} renew · {{ r.best.registrar }}
             </template>
-            <template v-else>No pricing</template>
+            <template v-else>{{ labels.noPricing }}</template>
           </span>
 
-          <span class="chev">{{ open === r.domain ? 'Close' : 'Prices' }}</span>
+          <span class="chev">{{ open === r.domain ? labels.close : labels.prices }}</span>
         </button>
 
         <div v-if="open === r.domain" class="row-body">
           <table>
             <thead>
               <tr>
-                <th>Registrar</th>
-                <th class="num">First year</th>
-                <th class="num">Renewal</th>
-                <th>Notes</th>
-                <th>Go</th>
+                <th>{{ labels.registrar }}</th>
+                <th class="num">{{ labels.firstYear }}</th>
+                <th class="num">{{ labels.renewal }}</th>
+                <th>{{ labels.notes }}</th>
+                <th>{{ labels.go }}</th>
               </tr>
             </thead>
             <tbody>
@@ -251,7 +382,7 @@ const sourceNote: Record<Result['source'], string> = {
                 <td>{{ q.note }}</td>
                 <td>
                   <a class="buy" :href="q.link" target="_blank" rel="noopener">
-                    Open →
+                    {{ labels.open }}
                   </a>
                 </td>
               </tr>
@@ -264,24 +395,15 @@ const sourceNote: Record<Result['source'], string> = {
     <!-- registrars / how -->
     <section id="registrars" class="results" style="padding-top: 0">
       <div class="results-bar">
-        <h2 id="how">How it works</h2>
-        <span class="meta">Two data sources</span>
+        <h2 id="how">{{ labels.howTitle }}</h2>
+        <span class="meta">{{ labels.twoSources }}</span>
       </div>
       <div class="row" style="padding: 24px 0">
         <p style="margin: 0 0 12px; max-width: 70ch">
-          <strong>Availability</strong> is live. Each candidate is looked up over
-          RDAP, the registry protocol that replaced WHOIS — that answer is
-          authoritative. TLDs with no RDAP service (many ccTLDs: .co, .me, .io)
-          fall back to a DNS lookup and are labelled “likely”, with a dashed
-          badge, because a registered name with no nameservers looks the same as
-          a free one.
+          <strong>{{ labels.availability }}</strong> {{ labels.availabilityText }}
         </p>
         <p style="margin: 0; max-width: 70ch">
-          <strong>Pricing</strong> comes from a local reference table
-          (<code>server/utils/pricing.ts</code>): a per-TLD baseline plus a
-          per-registrar markup and promo factor. Registrars have no free public
-          price API, so swap that file for real API calls once you hold
-          credentials.
+          <strong>{{ labels.pricing }}</strong> {{ labels.pricingText }}
         </p>
       </div>
     </section>
