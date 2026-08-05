@@ -26,7 +26,7 @@ If you connect this repo to Cloudflare Pages directly, set:
 
 | Piece | Source |
 | --- | --- |
-| Availability | Live RDAP lookup via `rdap.org` bootstrap (`server/utils/availability.ts`). 302 → registry RDAP; 404 there = free, 200 = taken (`source: "rdap"`, authoritative). TLDs with no RDAP service — many ccTLDs, incl. `.co` `.me` `.io` — fall back to a Cloudflare DoH NS lookup (`source: "dns"`, shown as "Likely …" with a dashed badge); NXDOMAIN is a strong but not certain signal. 10-minute in-memory cache, concurrency 8. |
+| Availability | Live authoritative RDAP lookup via `rdap.org` IANA bootstrap and direct registry servers (e.g. Identity Digital for `.io`, `.me`, `.ai`, `.sh`, `.studio`) in `server/utils/availability.ts`. Following redirects ensures compatibility with Cloudflare Pages Functions; 404 = free, 200 = taken (`source: "rdap"`, authoritative). Remaining ccTLDs without RDAP services fall back to a reliable multi-record DoH lookup (`source: "dns"`), checking both NS and SOA records across Cloudflare and Google DoH resolvers to verify zone non-existence before confirming availability. 10-minute in-memory cache, concurrency 8. |
 | Prices | Local reference table (`server/utils/pricing.ts`): per-TLD baseline × per-registrar markup, with a first-year promo factor. **Estimates, not live quotes.** |
 
 Registrars do not publish free price APIs. To make pricing live, replace
